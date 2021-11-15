@@ -29,8 +29,7 @@ OculusVROpenGLWidget::OculusVROpenGLWidget(
 	m_showInWidget(showInWidget),
 	m_frameIndex(0),
 	m_parentWidget(parent),
-	m_enableControllers(enableControllers),
-	m_initialBodyPos(0.0f, 0.0f, -5.0f)
+	m_enableControllers(enableControllers)
 #ifdef	MIRRORING_WITH_FBO
 	,m_mirrorTexture(nullptr),
 	m_mirrorFBO(0),
@@ -181,9 +180,38 @@ ovrSession OculusVROpenGLWidget::Session()
 	return m_session;
 }
 
-Vector3f OculusVROpenGLWidget::GetInitialBodyPosition()
+void OculusVROpenGLWidget::TranslateEyes(float i_deltaX, float i_deltaY, float i_deltaZ)
 {
-	return m_initialBodyPos;
+	Matrix4f rollPitchYaw =
+		Matrix4f::RotationZ(m_eyesRotations[_ROLL]) *
+		Matrix4f::RotationX(m_eyesRotations[_PITCH]) *
+		Matrix4f::RotationY(m_eyesRotations[_YAW]);
+	m_eyesTranslation += rollPitchYaw.Transform(Vector3f(i_deltaX, i_deltaY, i_deltaZ));
+}
+
+void OculusVROpenGLWidget::ResetEyesPositions()
+{
+	m_eyesTranslation = Vector3f();
+}
+
+Vector3f OculusVROpenGLWidget:: GetTranslations()
+{
+	return m_eyesTranslation;
+}
+
+void OculusVROpenGLWidget::RotateEyes(float i_yaw, float i_pitch, float i_roll)
+{
+	m_eyesRotations += Vector3f(i_yaw, i_pitch, i_roll);
+}
+
+void OculusVROpenGLWidget::ResetEyesRotaions()
+{
+	m_eyesRotations = Vector3f();
+}
+
+Vector3f OculusVROpenGLWidget::GetRotations()
+{
+	return m_eyesRotations;
 }
 
 void OculusVROpenGLWidget::Render(ovrSessionStatus sessionStatus, TargetRendering i_target)
@@ -193,7 +221,7 @@ void OculusVROpenGLWidget::Render(ovrSessionStatus sessionStatus, TargetRenderin
 	//ovrTrackingState trackingState = ovr_GetTrackingState(m_session, ftiming, ovrTrue);
 
 
-	static float Yaw(3.141592f);
+	static float yawOffest(3.141592f); // to look Z axis backward...
 
 	// Call ovr_GetRenderDesc each frame to get the ovrEyeRenderDesc, as the returned values (e.g. HmdToEyePose) may change at runtime.
 	ovrEyeRenderDesc eyeRenderDesc[2];
@@ -232,11 +260,15 @@ void OculusVROpenGLWidget::Render(ovrSessionStatus sessionStatus, TargetRenderin
 		}
 
 		// Get view and projection matrices
-		Matrix4f rollPitchYaw = Matrix4f::RotationY(Yaw);
+		Matrix4f rollPitchYaw = 
+			Matrix4f::RotationZ(m_eyesRotations[_ROLL]) *
+			Matrix4f::RotationX(m_eyesRotations[_PITCH]) *
+			Matrix4f::RotationY(m_eyesRotations[_YAW] + yawOffest);
+
 		Matrix4f finalRollPitchYaw = rollPitchYaw * Matrix4f(EyeRenderPose[eye].Orientation);
 		Vector3f finalUp = finalRollPitchYaw.Transform(Vector3f(0, 1, 0));
 		Vector3f finalForward = finalRollPitchYaw.Transform(Vector3f(0, 0, -1));
-		Vector3f shiftedEyePos = m_initialBodyPos + rollPitchYaw.Transform(EyeRenderPose[eye].Position);
+		Vector3f shiftedEyePos = m_eyesTranslation + rollPitchYaw.Transform(EyeRenderPose[eye].Position);
 
 		Matrix4f view = Matrix4f::LookAtRH(shiftedEyePos, shiftedEyePos + finalForward, finalUp);
 		Matrix4f proj = ovrMatrix4f_Projection(m_hmdDesc.DefaultEyeFov[eye], 0.2f, 1000.0f, ovrProjection_None);

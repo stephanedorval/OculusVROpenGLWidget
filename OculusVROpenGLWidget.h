@@ -2,8 +2,8 @@
 /// \brief Declare a C++ class for Oculus VR display in a Qt OpenGL widget.
 /// \author Stephane DORVAL
 
-#ifndef MAINWIDGET_H
-#define MAINWIDGET_H
+#ifndef __OCULUSVROPENGLWIDGET_H__
+#define __OCULUSVROPENGLWIDGET_H__
 
 //Include the Oculus SDK
 #include "OVR_CAPI_GL.h"
@@ -19,6 +19,16 @@ using namespace OVR;
 /// \todo Obviously, I missed something. I will retry later.
 //#define MIRRORING_WITH_FBO
 
+/// Axis indices
+#define _X	0
+#define	_Y	1
+#define _Z	2
+
+/// Angles indices
+#define _YAW	0
+#define _PITCH	1
+#define _ROLL	2
+
 /// \class OculusVROpenGLWidget
 /// \brief Define a widget which renders a scene in the Oculus headset and in the widget on demand.
 /// It is mostly inspired by the Oculus Tiny Room (GL) sample from Oculus SDK.
@@ -27,8 +37,6 @@ class OculusVROpenGLWidget :
 	public QOpenGLFunctions_4_5_Core
 {
 	Q_OBJECT
-
-public:
 
 public:
 
@@ -108,8 +116,11 @@ private:
 	/// Window size
 	ovrSizei m_windowSize;
 
-	/// Initial body position
-	Vector3f m_initialBodyPos;
+	/// Eyes translation vector
+	Vector3f m_eyesTranslation;
+
+	/// Eyes rotation angles: yaw, pitch, roll
+	Vector3f m_eyesRotations;
 
 	/// Timer
 	QTimer m_timer;
@@ -191,9 +202,29 @@ public:
 	/// \return The running session.
 	ovrSession Session();
 
-	/// \return the HDM position
-	Vector3f GetInitialBodyPosition();
+	/// \brief	Translate eyes positions by the vector (i_deltaX, i_deltaY, i_deltaZ).
+	/// \param	i_deltaX	Translation value on X axis.
+	/// \param	i_deltaY	Translation value on Y axis.
+	/// \param	i_deltaZ	Translation value on Z axis.
+	void TranslateEyes(float i_deltaX, float i_deltaY, float i_deltaZ);
 
+	/// \brief Reset eyes position to (0.0, 0.0, 0.0).
+	void ResetEyesPositions();
+
+	/// \return The eyes translation vector.
+	Vector3f GetTranslations();
+
+	/// \brief	Rotate eyes by the angles (i_yaw, i_pitch, i_roll).
+	/// \param	i_yaw	Rotation angle value on Y axis.
+	/// \param	i_pitch	Rotation angle value on X axis.
+	/// \param	i_roll	Rotation angle value on Z axis.
+	void RotateEyes(float i_yaw, float i_pitch, float i_roll);
+
+	/// \brief Reset eyes rotations to (0.0, 0.0, 0.0).
+	void ResetEyesRotaions();
+
+	/// \return The eyes Euler's angles in vector (yaw, pitch, roll).
+	Vector3f GetRotations();
 
 protected:
 
@@ -204,4 +235,4 @@ protected:
     void paintGL() override;
 };
 
-#endif // MAINWIDGET_H
+#endif // __OCULUSVROPENGLWIDGET_H__
